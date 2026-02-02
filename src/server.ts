@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import db, { restoreFromGoogleSheets, forceSyncFromGoogleSheets } from './database.js';
 import { initializeGoogleSheets } from './googleSheets.js';
-import fs from 'fs';
 
 const app = express();
 const sheetsService = initializeGoogleSheets();
