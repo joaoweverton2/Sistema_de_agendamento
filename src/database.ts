@@ -19,17 +19,6 @@ const db = new sqlite3.Database(dbPath, (err) => {
     }
 });
 
-function initializeDatabase() {
-    db.serialize(() => {
-        // Tabela de cidades
-        db.run(`
-            CREATE TABLE IF NOT EXISTS cities (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL,
-                state TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
 
         // Tabela de agendamentos
         db.run(`

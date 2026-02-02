@@ -636,8 +636,7 @@ async function initializeServer() {
 
 // Função auxiliar para inicializar o banco com retry
 function initializeDatabaseWithRetry(): Promise<void> {
-    return new Promise((resolve) => {
-        // Remova os parâmetros não utilizados ou use underline
+    return new Promise((resolve, reject) => {
         const maxRetries = 3;
         let retries = 0;
         
@@ -710,10 +709,23 @@ function initializeDatabaseWithRetry(): Promise<void> {
             });
         }
         
-        // Configurar timeout para garantir que o banco está pronto
-        setTimeout(() => {
-            attemptInitialize();
-        }, 100);
+        function attemptWithRetry() {
+            try {
+                attemptInitialize();
+            } catch (error) {
+                retries++;
+                if (retries < maxRetries) {
+                    console.log(`⚠️  Tentativa ${retries} de inicialização falhou, tentando novamente em ${retries}s...`);
+                    setTimeout(attemptWithRetry, 1000 * retries);
+                } else {
+                    console.error('❌ Todas as tentativas de inicialização do banco falharam');
+                    reject(error);
+                }
+            }
+        }
+        
+        // Iniciar primeira tentativa
+        setTimeout(attemptWithRetry, 100);
     });
 }
 
