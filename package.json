@@ -5,9 +5,9 @@
   "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && cp -r src/public dist/ 2>/dev/null || true",
+    "build": "tsc && npm run copy-public",
     "start": "node dist/server.js",
-    "render-build": "npm ci --only=production && npm run build"
+    "copy-public": "mkdir -p dist/public && (cp -r public/ dist/ 2>/dev/null || echo 'No public directory found')"
   },
   "dependencies": {
     "cors": "^2.8.5",
