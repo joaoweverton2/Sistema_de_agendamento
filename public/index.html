@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento de Mercadorias</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-content">
+                <h1>📅 Agendamento de Recebimento de Mercadorias</h1>
+                <button class="btn-my-bookings" onclick="goToMyBookings()">
+                    📋 Meus Agendamentos
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- SEÇÃO CALENDÁRIO -->
+            <div id="calendar-section" class="section active">
+                <div class="calendar-header">
+                    <h2>Selecione a Data e Horário</h2>
+                    <div class="state-selector">
+                        <label for="state-select">Estado (UF):</label>
+                        <select id="state-select" onchange="onStateChange()">
+                            <option value="">-- Selecione um estado --</option>
+                            <option value="CE">Ceará - Fortaleza</option>
+                            <option value="PB">Paraíba - João Pessoa</option>
+                            <option value="RN">Rio Grande do Norte - Natal</option>
+                            <option value="BA">Bahia - Eunápolis</option>
+                            <option value="MG">Minas Gerais - Poços de Caldas</option>
+                            <option value="SP-Ourinhos">São Paulo - Ourinhos</option>
+                            <option value="SP-Itupeva">São Paulo - Itupeva</option>
+                            <option value="SP-Registro">São Paulo - Registro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- CALENDÁRIO GRID -->
+                <div id="calendar-container" class="calendar-container">
+                    <!-- Será preenchido pelo JavaScript -->
+                </div>
+
+                <!-- LEGENDA -->
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <span class="legend-color available"></span>
+                        <span>Disponível</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color unavailable"></span>
+                        <span>Indisponível</span>
+                    </div>
+                </div>
+
+                <!-- RODAPÉ DINÂMICO DO CD -->
+                <div id="cd-footer-info" class="cd-footer-info">
+                    <div class="cd-footer-grid">
+                        <div class="cd-info-item">
+                            <h4>📍 Endereço do CD</h4>
+                            <p id="cd-address">-</p>
+                        </div>
+                        <div class="cd-info-item">
+                            <h4>👤 Responsável</h4>
+                            <p id="cd-manager">-</p>
+                        </div>
+                        <div class="cd-info-item">
+                            <h4>📞 Contato</h4>
+                            <p id="cd-contact">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO FORMULÁRIO DE AGENDAMENTO -->
+            <div id="booking-form-section" class="section">
+                <div class="form-header">
+                    <button class="btn-back" onclick="goBackToCalendar()">← Voltar</button>
+                    <h2>Dados do Agendamento</h2>
+                </div>
+
+                <!-- AVISO DE RESERVA DE TURNO -->
+                <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 15px; margin-bottom: 20px; color: #856404;">
+                    <strong>Atencao:</strong> Dependendo do volume a ser descarregado, reserve o turno!
+                </div>
+
+                <form id="booking-form" onsubmit="submitBooking(event)">
+                    <!-- FILTRO DE TURNOS -->
+                    <div class="form-group">
+                        <label for="shift-select">Tipo de Reserva: *</label>
+                        <select id="shift-select" name="shift" required onchange="updateShiftDisplay()">
+                            <option value="">-- Selecione uma opcao --</option>
+                            <option value="morning">Turno da Manha (08:00 - 11:00)</option>
+                            <option value="afternoon">Turno da Tarde (13:00 - 16:00)</option>
+                            <option value="hour">Horas (Horario Selecionado)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data e Horario Selecionados:</label>
+                        <div class="selected-datetime" id="selected-datetime">
+                            <!-- Sera preenchido pelo JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="company-name">Empresa/Transportadora: *</label>
+                        <input type="text" id="company-name" name="company_name" required 
+                               placeholder="Ex: Transportadora XYZ Ltda">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="supplier">Fornecedor: *</label>
+                        <input type="text" id="supplier" name="supplier" required 
+                               placeholder="Ex: Fornecedor ABC">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="vehicle-plate">Placa do Veículo: *</label>
+                        <input type="text" id="vehicle-plate" name="vehicle_plate" required 
+                               placeholder="Ex: ABC-1234">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="invoice-number">Número da Nota Fiscal: *</label>
+                        <input type="text" id="invoice-number" name="invoice_number" required 
+                               placeholder="Ex: NF-000001">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="driver-name">Nome do Motorista: *</label>
+                        <input type="text" id="driver-name" name="driver_name" required 
+                               placeholder="Ex: João Silva Santos">
+                    </div>
+
+                    <button type="submit" class="btn-submit">Confirmar Agendamento</button>
+                </form>
+            </div>
+
+            <!-- SEÇÃO MEUS AGENDAMENTOS -->
+            <div id="my-bookings-section" class="section">
+                <div class="bookings-header">
+                    <button class="btn-back" onclick="goBackToCalendar()">← Voltar</button>
+                    <h2>Meus Agendamentos</h2>
+                </div>
+
+                <div class="search-box" style="display: flex; gap: 10px;">
+                    <input type="text" id="search-protocol" placeholder="Digite o protocolo (Ex: BK-20260126-0800)" 
+                           style="flex: 1;">
+                    <button class="btn-submit" onclick="searchBookings()" style="width: auto; padding: 10px 20px;">🔍 Buscar</button>
+                </div>
+
+                <div id="bookings-list" class="bookings-list">
+                    <!-- Será preenchido pelo JavaScript -->
+                </div>
+            </div>
+
+            <!-- SEÇÃO CDL MANAGEMENT (Oculta) -->
+            <div id="cdl-section" class="section">
+                <div class="cdl-header">
+                    <button class="btn-back" onclick="goBackToCalendar()">← Voltar</button>
+                    <h2>🔐 Gerenciamento CDL</h2>
+                </div>
+
+                <form id="cdl-form" onsubmit="submitCDLForm(event)">
+                    <div class="form-group">
+                        <label for="cdl-pin">PIN de Acesso CDL: *</label>
+                        <input type="password" id="cdl-pin" name="pin" required 
+                               placeholder="Digite o PIN">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cdl-state">Estado (UF): *</label>
+                        <select id="cdl-state" required>
+                            <option value="">-- Selecione um estado --</option>
+                            <option value="CE">Ceará - Fortaleza</option>
+                            <option value="PB">Paraíba - João Pessoa</option>
+                            <option value="RN">Rio Grande do Norte - Natal</option>
+                            <option value="BA">Bahia - Eunápolis</option>
+                            <option value="MG">Minas Gerais - Poços de Caldas</option>
+                            <option value="SP-Ourinhos">São Paulo - Ourinhos</option>
+                            <option value="SP-Itupeva">São Paulo - Itupeva</option>
+                            <option value="SP-Registro">São Paulo - Registro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cdl-date">Data Indisponível: *</label>
+                        <input type="date" id="cdl-date" name="unavailable_date" required>
+                    </div>
+
+<!-- Campo Horário removido pois a ideia é comprometer o dia inteiro -->
+
+                    <div class="form-group">
+                        <label for="cdl-reason">Motivo: *</label>
+                        <textarea id="cdl-reason" name="reason" required 
+                                  placeholder="Ex: Manutenção de equipamento"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Registrar Indisponibilidade</button>
+                </form>
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p>&copy; 2025 Sistema de Agendamento de Mercadorias</p>
+            <a href="javascript:showCDLAccess()" class="cdl-link" title="Acesso CDL">🔐</a>
+        </footer>
+    </div>
+
+    <!-- MODAL DE PROTOCOLO -->
+    <div id="protocol-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>✅ Agendamento Confirmado!</h2>
+            <div class="protocol-box">
+                <p>Seu protocolo de agendamento:</p>
+                <div class="protocol-number" id="protocol-number">BK-20250126-1400</div>
+            </div>
+            <p class="protocol-info">Guarde este número para cancelar ou alterar seu agendamento a qualquer momento.</p>
+            <button class="btn-submit" onclick="closeProtocolModal()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- NOTIFICAÇÕES -->
+    <div id="notification" class="notification"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+

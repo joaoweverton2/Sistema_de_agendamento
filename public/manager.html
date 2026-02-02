@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visão Gerencial - Agendamento de Mercadorias</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-content">
+                <h1>📊 Visão Gerencial do CD</h1>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- SEÇÃO VISÃO GERENCIAL (ESTILO TEAMS) -->
+            <div id="manager-view-section" class="section active">
+                <div class="manager-header">
+                    <div>
+                        <h2>Agendamentos da Semana</h2>
+                    </div>
+                    <div class="manager-controls">
+                        <select id="manager-state-select" onchange="loadManagerData()">
+                            <option value="">-- Todos os Estados --</option>
+                            <option value="CE">Ceará - Fortaleza</option>
+                            <option value="PB">Paraíba - João Pessoa</option>
+                            <option value="RN">Rio Grande do Norte - Natal</option>
+                            <option value="BA">Bahia - Eunápolis</option>
+                            <option value="MG">Minas Gerais - Poços de Caldas</option>
+                            <option value="SP-Ourinhos">São Paulo - Ourinhos</option>
+                            <option value="SP-Itupeva">São Paulo - Itupeva</option>
+                            <option value="SP-Registro">São Paulo - Registro</option>
+                        </select>
+                        <button class="btn-submit" style="width: auto; background-color: #27ae60;" onclick="downloadBookingsXLSX()">
+                            📥 Baixar lista de agendamentos
+                        </button>
+                    </div>
+                </div>
+
+                <div class="teams-calendar-container">
+                    <div class="teams-calendar-header" id="teams-calendar-days-header">
+                        <!-- Dias da semana serão inseridos aqui -->
+                    </div>
+                    <div class="teams-calendar-grid" id="teams-calendar-grid">
+                        <!-- Agendamentos por dia serão inseridos aqui -->
+                    </div>
+                </div>
+
+                <!-- BOTÕES DE NAVEGAÇÃO SEMANAL -->
+                <div style="display: flex; justify-content: center; gap: 15px; margin-top: 20px;">
+                    <button class="btn-back" onclick="previousWeek()" style="background-color: #3498db; color: white; font-weight: 600;">
+                        ← Semana Anterior
+                    </button>
+                    <button class="btn-back" onclick="nextWeek()" style="background-color: #3498db; color: white; font-weight: 600;">
+                        Próxima Semana →
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p>&copy; 2026 Sistema de Agendamento de Mercadorias. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <script src="manager.js"></script>
+</body>
+</html>
