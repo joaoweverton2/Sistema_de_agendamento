@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "build": "tsc && npm run copy-files-windows",
-    "start": "node dist/server.js",
+    "build": "tsc && cp -r src/public/* dist/public/",
+    "start": "node dist/server.js"
     "test": "vitest run",
     "copy-files-windows": "xcopy /E /I src\\views dist\\views 2>nul && xcopy /E /I src\\public dist\\public 2>nul || echo Files copied",
     "render-build": "npm ci --include=dev && npm run build",
