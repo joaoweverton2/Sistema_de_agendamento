@@ -636,7 +636,8 @@ async function initializeServer() {
 
 // Função auxiliar para inicializar o banco com retry
 function initializeDatabaseWithRetry(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
+        // Remova os parâmetros não utilizados ou use underline
         const maxRetries = 3;
         let retries = 0;
         
