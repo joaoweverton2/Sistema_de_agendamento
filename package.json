@@ -5,13 +5,9 @@
   "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/server.ts",
-    "build": "tsc && cp -r src/public/* dist/public/",
-    "start": "node dist/server.js"
-    "test": "vitest run",
-    "copy-files-windows": "xcopy /E /I src\\views dist\\views 2>nul && xcopy /E /I src\\public dist\\public 2>nul || echo Files copied",
-    "render-build": "npm ci --include=dev && npm run build",
-    "dev:watch": "ts-node-dev --respawn --transpile-only src/server.ts"
+    "build": "tsc && cp -r src/public dist/ 2>/dev/null || true",
+    "start": "node dist/server.js",
+    "render-build": "npm ci --only=production && npm run build"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -19,16 +15,13 @@
     "express": "^4.18.2",
     "google-auth-library": "^9.0.0",
     "googleapis": "^126.0.0",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.25",
     "@types/node": "^20.19.30",
-    "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.5",
-    "vitest": "^1.6.0"
+    "typescript": "^5.4.5"
   },
   "engines": {
     "node": ">=18.0.0"
