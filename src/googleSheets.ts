@@ -162,51 +162,55 @@ export class GoogleSheetsService {
     }
 
     async appendUnavailability(unavailability: any): Promise<void> {
-        try {
-            const values = [
-                [
-                    unavailability.city_name || 'Cidade não encontrada',
-                    unavailability.unavailable_date,
-                    unavailability.unavailable_time || 'Dia Inteiro',
-                    unavailability.reason,
-                    new Date().toISOString()
-                ]
-            ];
+    try {
+        // Aqui está o problema: 'city_name' pode não estar vindo
+        // Vamos buscar o nome da cidade do banco de dados
+        const cityName = unavailability.city_name || unavailability.city || 'Cidade não encontrada';
+        
+        const values = [
+            [
+                cityName, // Usar o nome corretamente
+                unavailability.unavailable_date,
+                unavailability.unavailable_time || 'Dia Inteiro',
+                unavailability.reason,
+                new Date().toISOString()
+            ]
+        ];
 
-            const sheetName = this.config.unavailabilitiesSheetName;
-            await this.ensureSheetExists(sheetName);
+        const sheetName = this.config.unavailabilitiesSheetName;
+        await this.ensureSheetExists(sheetName);
+        
+        const response = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.config.spreadsheetId,
+            range: `${sheetName}!A1:E1`,
+        });
+
+        if (!response.data.values || response.data.values.length === 0) {
+            const headers = [
+                ['Cidade', 'Data Indisponível', 'Horário', 'Motivo', 'Data Registro']
+            ];
             
-            const response = await this.sheets.spreadsheets.values.get({
+            await this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.config.spreadsheetId,
                 range: `${sheetName}!A1:E1`,
-            });
-
-            if (!response.data.values || response.data.values.length === 0) {
-                const headers = [
-                    ['Cidade', 'Data Indisponível', 'Horário', 'Motivo', 'Data Registro']
-                ];
-                
-                await this.sheets.spreadsheets.values.update({
-                    spreadsheetId: this.config.spreadsheetId,
-                    range: `${sheetName}!A1:E1`,
-                    valueInputOption: 'RAW',
-                    requestBody: { values: headers },
-                });
-            }
-
-            await this.sheets.spreadsheets.values.append({
-                spreadsheetId: this.config.spreadsheetId,
-                range: `${sheetName}!A:E`,
                 valueInputOption: 'RAW',
-                insertDataOption: 'INSERT_ROWS',
-                requestBody: { values },
+                requestBody: { values: headers },
             });
-            
-            console.log(`📊 Indisponibilidade sincronizada com Google Sheets (aba: ${sheetName})`);
-        } catch (error) {
-            console.error('❌ Erro ao sincronizar indisponibilidade com Google Sheets:', error);
         }
+
+        await this.sheets.spreadsheets.values.append({
+            spreadsheetId: this.config.spreadsheetId,
+            range: `${sheetName}!A:E`,
+            valueInputOption: 'RAW',
+            insertDataOption: 'INSERT_ROWS',
+            requestBody: { values },
+        });
+        
+        console.log(`📊 Indisponibilidade sincronizada com Google Sheets (aba: ${sheetName})`);
+    } catch (error) {
+        console.error('❌ Erro ao sincronizar indisponibilidade com Google Sheets:', error);
     }
+}
 
     private async ensureSheetExists(sheetName: string): Promise<void> {
         try {

@@ -363,6 +363,7 @@ app.post('/api/cdl/booking', (req: Request, res: Response) => {
 });
 
 // POST /api/cdl/unavailability - Registrar indisponibilidade
+// POST /api/cdl/unavailability - Registrar indisponibilidade
 app.post('/api/cdl/unavailability', (req: Request, res: Response) => {
     const { pin, city_id, unavailable_date, unavailable_time, reason } = req.body;
 
@@ -383,7 +384,7 @@ app.post('/api/cdl/unavailability', (req: Request, res: Response) => {
         'SP-Registro': ['11505', '10857']
     };
 
-    // Buscar o estado da cidade
+    // Buscar o estado e nome da cidade
     db.get('SELECT state, name FROM cities WHERE id = ?', [city_id], (err, city: any) => {
         if (err || !city) {
             res.status(400).json({ error: 'Cidade não encontrada' });
@@ -392,13 +393,12 @@ app.post('/api/cdl/unavailability', (req: Request, res: Response) => {
 
         const ufKey = city.state === 'SP' ? `${city.state}-${city.name}` : city.state;
         const validPins = pinsByUF[ufKey] || [];
+        const cityName = city.name;
 
         if (!validPins.includes(pin)) {
             res.status(401).json({ error: 'PIN de acesso inválido para esta UF' });
             return;
         }
-
-        const cityName = city.name;
 
         // Ponto 3: Trava de segurança no backend - Verificar se há agendamentos confirmados
         db.get('SELECT COUNT(*) as count FROM bookings WHERE city_id = ? AND booking_date = ? AND status = "confirmed"', [city_id, unavailable_date], (err, row: any) => {
@@ -433,7 +433,8 @@ app.post('/api/cdl/unavailability', (req: Request, res: Response) => {
                     // Sincronizar com Google Sheets se disponível
                     if (sheetsService) {
                         sheetsService.appendUnavailability({
-                            city: cityName,
+                            city: cityName, // Passar o nome da cidade corretamente
+                            city_name: cityName, // Por segurança, passar em ambos os campos
                             unavailable_date,
                             unavailable_time: unavailable_time || 'Dia Inteiro',
                             reason
