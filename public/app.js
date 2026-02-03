@@ -118,8 +118,8 @@ function renderCalendar() {
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
     
-    // Renderizar 2 meses
-    for (let monthOffset = 0; monthOffset < 2; monthOffset++) {
+    // Renderizar 3 meses (Mês vigente + 2 seguintes)
+    for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
         const month = (currentMonth + monthOffset) % 12;
         const year = currentYear + Math.floor((currentMonth + monthOffset) / 12);
         
@@ -658,13 +658,30 @@ function submitCDLForm(event) {
     const date = document.getElementById('cdl-date').value;
     const reason = document.getElementById('cdl-reason').value;
     
+    if (!stateVal) {
+        showNotification('Selecione um estado', 'error');
+        return;
+    }
+
     const cityId = CITIES[stateVal].id;
+
+    // Ponto 3: Impedir indisponibilidade se houver agendamentos confirmados
+    const hasConfirmedBookings = state.currentBookings.some(b => 
+        b.city_id === cityId && 
+        b.booking_date === date && 
+        b.status === 'confirmed'
+    );
+
+    if (hasConfirmedBookings) {
+        showNotification('Não é possível indisponibilizar esta data pois já existem agendamentos confirmados.', 'error');
+        return;
+    }
     
     const data = {
         pin: pin,
         city_id: cityId,
         unavailable_date: date,
-        unavailable_time: null, // Sempre nulo para comprometer o dia inteiro
+        unavailable_time: null,
         reason: reason
     };
     
@@ -685,6 +702,109 @@ function submitCDLForm(event) {
     })
     .catch(err => {
         console.error(err);
+        showNotification('Erro ao conectar com o servidor', 'error');
+    });
+}
+
+// Funções para Agendamento CDL (Secundário)
+function onCDLBookingStateChange() {
+    onCDLBookingDateChange();
+}
+
+function onCDLBookingDateChange() {
+    const stateVal = document.getElementById('cdl-booking-state').value;
+    const dateVal = document.getElementById('cdl-booking-date').value;
+    const timeSelect = document.getElementById('cdl-booking-time');
+    
+    if (!stateVal || !dateVal) {
+        timeSelect.innerHTML = '<option value="">-- Selecione a data primeiro --</option>';
+        return;
+    }
+
+    const cityId = CITIES[stateVal].id;
+    
+    // Buscar agendamentos e indisponibilidades para filtrar horários
+    Promise.all([
+        fetch(`${API_URL}/bookings`).then(res => res.json()),
+        fetch(`${API_URL}/cdl/unavailabilities/${cityId}`).then(res => res.json())
+    ]).then(([bookings, unavailabilities]) => {
+        const isUnavailable = unavailabilities.some(u => u.unavailable_date === dateVal);
+        
+        if (isUnavailable) {
+            timeSelect.innerHTML = '<option value="">-- Dia Indisponível --</option>';
+            return;
+        }
+
+        timeSelect.innerHTML = '<option value="">-- Selecione um horário --</option>';
+        HOURS.forEach(hour => {
+            const isBooked = bookings.some(b => 
+                b.city_id === cityId && 
+                b.booking_date === dateVal && 
+                b.booking_time === hour &&
+                b.status === 'confirmed'
+            );
+            
+            if (!isBooked) {
+                const option = document.createElement('option');
+                option.value = hour;
+                option.textContent = hour;
+                timeSelect.appendChild(option);
+            }
+        });
+        
+        if (timeSelect.options.length === 1) {
+            timeSelect.innerHTML = '<option value="">-- Sem horários disponíveis --</option>';
+        }
+    });
+}
+
+function submitCDLBooking(event) {
+    event.preventDefault();
+    const stateVal = document.getElementById('cdl-booking-state').value;
+    
+    if (!stateVal) {
+        showNotification('Selecione um estado', 'error');
+        return;
+    }
+
+    // Ponto 5: Coletar dados manualmente para evitar conflito com outros campos do formulário/página
+    const data = {
+        pin: document.getElementById('cdl-booking-pin').value,
+        city_id: CITIES[stateVal].id,
+        booking_date: document.getElementById('cdl-booking-date').value,
+        booking_time: document.getElementById('cdl-booking-time').value,
+        company_name: document.getElementById('cdl-booking-company').value,
+        driver_name: document.getElementById('cdl-booking-driver').value,
+        supplier: document.getElementById('cdl-booking-supplier').value,
+        vehicle_plate: document.getElementById('cdl-booking-plate').value,
+        invoice_number: document.getElementById('cdl-booking-nf').value
+    };
+
+    // Validar campos obrigatórios no frontend antes de enviar
+    if (!data.pin || !data.booking_date || !data.booking_time || !data.company_name || !data.driver_name || !data.supplier || !data.vehicle_plate || !data.invoice_number) {
+        showNotification('Por favor, preencha todos os campos do Agendamento CDL.', 'error');
+        return;
+    }
+
+    fetch(`${API_URL}/cdl/booking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.error) {
+            showNotification(result.error, 'error');
+        } else {
+            showNotification('Agendamento CDL realizado com sucesso!', 'success');
+            document.getElementById('protocol-number').textContent = result.protocol;
+            document.getElementById('protocol-modal').classList.remove('hidden');
+            event.target.reset();
+            onStateChange();
+        }
+    })
+    .catch(err => {
+        console.error('Erro ao realizar agendamento CDL:', err);
         showNotification('Erro ao conectar com o servidor', 'error');
     });
 }

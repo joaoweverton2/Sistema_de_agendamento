@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\joao-\Downloads\Sistema_de_agendamento_Corrigido\venv
+set VIRTUAL_ENV=C:\Users\joao-\OneDrive\Área de Trabalho\Sistema de agendamento\venv
 
 if not defined PROMPT set PROMPT=$P$G
 

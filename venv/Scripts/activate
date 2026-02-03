@@ -35,7 +35,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\joao-\Downloads\Sistema_de_agendamento_Corrigido\venv"
+VIRTUAL_ENV="C:\Users\joao-\OneDrive\Área de Trabalho\Sistema de agendamento\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
