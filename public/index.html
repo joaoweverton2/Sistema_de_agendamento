@@ -11,7 +11,10 @@
         <!-- HEADER -->
         <header class="header">
             <div class="header-content">
-                <h1>📅 Agendamento de Recebimento de Mercadorias</h1>
+                <div class="header-title-container">
+                    <img src="https://witcraft-config-lps.mundiale.com.br/craft/img/www.alaresfibraparceiro.com.br/logo/34a389c6fc3dc758b277ea186bb7ad81.webp" alt="Alares Logo" class="logo-alares">
+                    <h1>Agendamento de Recebimento de Mercadorias</h1>
+                </div>
                 <button class="btn-my-bookings" onclick="goToMyBookings()">
                     📋 Meus Agendamentos
                 </button>
@@ -166,43 +169,100 @@
                     <h2>🔐 Gerenciamento CDL</h2>
                 </div>
 
-                <form id="cdl-form" onsubmit="submitCDLForm(event)">
-                    <div class="form-group">
-                        <label for="cdl-pin">PIN de Acesso CDL: *</label>
-                        <input type="password" id="cdl-pin" name="pin" required 
-                               placeholder="Digite o PIN">
+                <div class="cdl-management-container" style="display: flex; gap: 30px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <!-- LADO ESQUERDO: INDISPONIBILIZAR -->
+                    <div style="flex: 1;">
+                        <h3 style="margin-bottom: 20px; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 5px;">Indisponibilização de data</h3>
+                        <form id="cdl-form" onsubmit="submitCDLForm(event)">
+                            <div class="form-group">
+                                <label for="cdl-pin">PIN de Acesso CDL: *</label>
+                                <input type="password" id="cdl-pin" name="pin" required placeholder="Digite o PIN">
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-state">Estado (UF): *</label>
+                                <select id="cdl-state" required>
+                                    <option value="">-- Selecione um estado --</option>
+                                    <option value="CE">Ceará - Fortaleza</option>
+                                    <option value="PB">Paraíba - João Pessoa</option>
+                                    <option value="RN">Rio Grande do Norte - Natal</option>
+                                    <option value="BA">Bahia - Eunápolis</option>
+                                    <option value="MG">Minas Gerais - Poços de Caldas</option>
+                                    <option value="SP-Ourinhos">São Paulo - Ourinhos</option>
+                                    <option value="SP-Itupeva">São Paulo - Itupeva</option>
+                                    <option value="SP-Registro">São Paulo - Registro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-date">Data Indisponível: *</label>
+                                <input type="date" id="cdl-date" name="unavailable_date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-reason">Motivo: *</label>
+                                <textarea id="cdl-reason" name="reason" required placeholder="Ex: Manutenção de equipamento"></textarea>
+                            </div>
+                            <button type="submit" class="btn-submit">Registrar Indisponibilidade</button>
+                        </form>
                     </div>
 
-                    <div class="form-group">
-                        <label for="cdl-state">Estado (UF): *</label>
-                        <select id="cdl-state" required>
-                            <option value="">-- Selecione um estado --</option>
-                            <option value="CE">Ceará - Fortaleza</option>
-                            <option value="PB">Paraíba - João Pessoa</option>
-                            <option value="RN">Rio Grande do Norte - Natal</option>
-                            <option value="BA">Bahia - Eunápolis</option>
-                            <option value="MG">Minas Gerais - Poços de Caldas</option>
-                            <option value="SP-Ourinhos">São Paulo - Ourinhos</option>
-                            <option value="SP-Itupeva">São Paulo - Itupeva</option>
-                            <option value="SP-Registro">São Paulo - Registro</option>
-                        </select>
+                    <!-- SEPARADOR -->
+                    <div style="border-left: 2px dashed var(--border-color); margin: 0 10px;"></div>
+
+                    <!-- LADO DIREITO: AGENDAMENTO CDL -->
+                    <div style="flex: 1;">
+                        <h3 style="margin-bottom: 20px; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 5px;">Agendamento CDL</h3>
+                        <form id="cdl-booking-form" onsubmit="submitCDLBooking(event)">
+                            <div class="form-group">
+                                <label for="cdl-booking-pin">PIN de Acesso CDL: *</label>
+                                <input type="password" id="cdl-booking-pin" name="pin" required placeholder="Digite o PIN">
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-booking-state">Estado (UF): *</label>
+                                <select id="cdl-booking-state" required onchange="onCDLBookingStateChange()">
+                                    <option value="">-- Selecione um estado --</option>
+                                    <option value="CE">Ceará - Fortaleza</option>
+                                    <option value="PB">Paraíba - João Pessoa</option>
+                                    <option value="RN">Rio Grande do Norte - Natal</option>
+                                    <option value="BA">Bahia - Eunápolis</option>
+                                    <option value="MG">Minas Gerais - Poços de Caldas</option>
+                                    <option value="SP-Ourinhos">São Paulo - Ourinhos</option>
+                                    <option value="SP-Itupeva">São Paulo - Itupeva</option>
+                                    <option value="SP-Registro">São Paulo - Registro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-booking-date">Data do Agendamento: *</label>
+                                <input type="date" id="cdl-booking-date" name="booking_date" required onchange="onCDLBookingDateChange()">
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-booking-time">Horário Disponível: *</label>
+                                <select id="cdl-booking-time" name="booking_time" required>
+                                    <option value="">-- Selecione a data primeiro --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-booking-company">Empresa/Transportadora: *</label>
+                                <input type="text" id="cdl-booking-company" name="company_name" required placeholder="Ex: Transportadora XYZ">
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-booking-supplier">Fornecedor: *</label>
+                                <input type="text" id="cdl-booking-supplier" required placeholder="Nome do Fornecedor">
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-booking-plate">Placa do Veículo: *</label>
+                                <input type="text" id="cdl-booking-plate" required placeholder="Placa (ex: ABC1D23)">
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-booking-nf">Nota Fiscal: *</label>
+                                <input type="text" id="cdl-booking-nf" required placeholder="Número da NF">
+                            </div>
+                            <div class="form-group">
+                                <label for="cdl-booking-driver">Nome do Motorista: *</label>
+                                <input type="text" id="cdl-booking-driver" name="driver_name" required placeholder="Ex: João Silva">
+                            </div>
+                            <button type="submit" class="btn-submit" style="background-color: var(--primary-color);">Realizar Agendamento Secundário</button>
+                        </form>
                     </div>
-
-                    <div class="form-group">
-                        <label for="cdl-date">Data Indisponível: *</label>
-                        <input type="date" id="cdl-date" name="unavailable_date" required>
-                    </div>
-
-<!-- Campo Horário removido pois a ideia é comprometer o dia inteiro -->
-
-                    <div class="form-group">
-                        <label for="cdl-reason">Motivo: *</label>
-                        <textarea id="cdl-reason" name="reason" required 
-                                  placeholder="Ex: Manutenção de equipamento"></textarea>
-                    </div>
-
-                    <button type="submit" class="btn-submit">Registrar Indisponibilidade</button>
-                </form>
+                </div>
             </div>
         </main>
 

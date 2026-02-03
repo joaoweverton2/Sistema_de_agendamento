@@ -287,60 +287,153 @@ app.get('/api/cdl/unavailabilities/:city_id', (req: Request, res: Response) => {
     );
 });
 
+// POST /api/cdl/booking - Agendamento secundário pelo CD
+app.post('/api/cdl/booking', (req: Request, res: Response) => {
+    const { pin, city_id, company_name, supplier, vehicle_plate, invoice_number, driver_name, booking_date, booking_time } = req.body;
+
+    if (!city_id || !company_name || !supplier || !vehicle_plate || !invoice_number || !driver_name || !booking_date || !booking_time || !pin) {
+        res.status(400).json({ error: 'Campos obrigatórios faltando' });
+        return;
+    }
+
+    // Validar PIN do CDL por UF
+    const pinsByUF: Record<string, string[]> = {
+        'CE': ['13877', '11249'],
+        'BA': ['13877', '11249'],
+        'RN': ['10359', '11249'],
+        'PB': ['10359', '11249'],
+        'SP-Itupeva': ['13604', '10857'],
+        'MG': ['10367', '10857'],
+        'SP-Ourinhos': ['11505', '10857'],
+        'SP-Registro': ['11505', '10857']
+    };
+
+    db.get('SELECT state, name FROM cities WHERE id = ?', [city_id], (err, city: any) => {
+        if (err || !city) {
+            res.status(400).json({ error: 'Cidade não encontrada' });
+            return;
+        }
+
+        const ufKey = city.state === 'SP' ? `${city.state}-${city.name}` : city.state;
+        const validPins = pinsByUF[ufKey] || [];
+
+        if (!validPins.includes(pin)) {
+            res.status(401).json({ error: 'PIN de acesso inválido para esta UF' });
+            return;
+        }
+
+        // Gerar protocolo aleatório
+        const randomLetters = String.fromCharCode(65 + Math.floor(Math.random() * 26)) + String.fromCharCode(65 + Math.floor(Math.random() * 26));
+        const datePart = booking_date.replace(/-/g, '');
+        const timePart = booking_time.replace(/:/g, '');
+        const protocol = `CDL-${randomLetters}-${datePart}-${timePart}`;
+
+        db.run(
+            `INSERT INTO bookings (protocol, city_id, company_name, supplier, vehicle_plate, invoice_number, driver_name, booking_date, booking_time)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [protocol, city_id, company_name, supplier, vehicle_plate, invoice_number, driver_name, booking_date, booking_time],
+            function(err: any) {
+                if (err) {
+                    res.status(500).json({ error: err.message });
+                    return;
+                }
+                
+                const bookingId = this.lastID;
+                res.json({ id: bookingId, protocol, status: 'confirmed' });
+
+                // Sincronizar com Google Sheets
+                if (sheetsService) {
+                    sheetsService.appendBooking({
+                        id: bookingId,
+                        protocol,
+                        city: city.name,
+                        company_name,
+                        supplier: supplier,
+                        vehicle_plate,
+                        invoice_number,
+                        driver_name,
+                        booking_date,
+                        booking_time,
+                        status: 'confirmed'
+                    });
+                }
+            }
+        );
+    });
+});
+
 // POST /api/cdl/unavailability - Registrar indisponibilidade
 app.post('/api/cdl/unavailability', (req: Request, res: Response) => {
     const { pin, city_id, unavailable_date, unavailable_time, reason } = req.body;
-
-    // Validar PIN (padrão: 1235)
-    if (pin !== '1235') {
-        res.status(401).json({ error: 'PIN inválido' });
-        return;
-    }
 
     if (!city_id || !unavailable_date || !reason) {
         res.status(400).json({ error: 'Campos obrigatórios faltando' });
         return;
     }
 
-    // Buscar o nome da cidade
-    db.get(
-        `SELECT name FROM cities WHERE id = ?`,
-        [city_id],
-        handleDbCallback((err: any, cityRow: any) => {
+    // Validar PIN do CDL por UF
+    const pinsByUF: Record<string, string[]> = {
+        'CE': ['13877', '11249'],
+        'BA': ['13877', '11249'],
+        'RN': ['10359', '11249'],
+        'PB': ['10359', '11249'],
+        'SP-Itupeva': ['13604', '10857'],
+        'MG': ['10367', '10857'],
+        'SP-Ourinhos': ['11505', '10857'],
+        'SP-Registro': ['11505', '10857']
+    };
+
+    // Buscar o estado da cidade
+    db.get('SELECT state, name FROM cities WHERE id = ?', [city_id], (err, city: any) => {
+        if (err || !city) {
+            res.status(400).json({ error: 'Cidade não encontrada' });
+            return;
+        }
+
+        const ufKey = city.state === 'SP' ? `${city.state}-${city.name}` : city.state;
+        const validPins = pinsByUF[ufKey] || [];
+
+        if (!validPins.includes(pin)) {
+            res.status(401).json({ error: 'PIN de acesso inválido para esta UF' });
+            return;
+        }
+
+        const cityName = city.name;
+
+        // Ponto 3: Trava de segurança no backend - Verificar se há agendamentos confirmados
+        db.get('SELECT COUNT(*) as count FROM bookings WHERE city_id = ? AND booking_date = ? AND status = "confirmed"', [city_id, unavailable_date], (err, row: any) => {
             if (err) {
                 res.status(500).json({ error: err.message });
                 return;
             }
-            
-            if (!cityRow) {
-                res.status(404).json({ error: 'Cidade não encontrada' });
+
+            if (row.count > 0) {
+                res.status(400).json({ error: 'Não é possível indisponibilizar esta data pois já existem agendamentos confirmados.' });
                 return;
             }
-
-            const cityName = cityRow.name;
 
             // Inserir a indisponibilidade
             db.run(
                 `INSERT INTO unavailabilities (city_id, unavailable_date, unavailable_time, reason)
                  VALUES (?, ?, ?, ?)`,
                 [city_id, unavailable_date, unavailable_time || null, reason],
-                function(err: any) {
+                function(this: any, err: any) {
                     if (err) {
                         res.status(500).json({ error: err.message });
                         return;
                     }
                     
                     const unavailabilityId = this.lastID;
+                    
                     res.json({ 
-                        message: 'Indisponibilidade registrada com sucesso', 
+                        message: 'Indisponibilidade registrada com sucesso',
                         id: unavailabilityId 
                     });
-                    
+
                     // Sincronizar com Google Sheets se disponível
                     if (sheetsService) {
                         sheetsService.appendUnavailability({
-                            city_id,
-                            city_name: cityName,
+                            city: cityName,
                             unavailable_date,
                             unavailable_time: unavailable_time || 'Dia Inteiro',
                             reason
@@ -348,8 +441,8 @@ app.post('/api/cdl/unavailability', (req: Request, res: Response) => {
                     }
                 }
             );
-        })
-    );
+        });
+    });
 });
 
 // GET /api/cities - Listar todas as cidades

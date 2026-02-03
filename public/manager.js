@@ -85,6 +85,23 @@ function renderTeamsCalendar(bookings, selectedUF) {
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay() + (state.weekOffset * 7));
     
+    // Adicionar nome do mês acima do calendário
+    const monthName = startOfWeek.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const monthDisplay = document.getElementById('manager-month-display') || document.createElement('div');
+    monthDisplay.id = 'manager-month-display';
+    monthDisplay.style.textAlign = 'center';
+    monthDisplay.style.fontSize = '20px';
+    monthDisplay.style.fontWeight = 'bold';
+    monthDisplay.style.marginBottom = '15px';
+    monthDisplay.style.color = 'var(--primary-color)';
+    monthDisplay.style.textTransform = 'capitalize';
+    monthDisplay.textContent = monthName;
+    
+    const calendarContainer = document.querySelector('.teams-calendar-container');
+    if (calendarContainer && !document.getElementById('manager-month-display')) {
+        calendarContainer.parentNode.insertBefore(monthDisplay, calendarContainer);
+    }
+
     const weekdays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
     
     for (let i = 0; i < 7; i++) {
@@ -101,7 +118,17 @@ function renderTeamsCalendar(bookings, selectedUF) {
         const isHoliday = checkHoliday(currentDate, selectedUF);
         const isUnavailable = checkUnavailability(dateStr);
         
-        const isYellowDay = isWeekend || isHoliday || isUnavailable;
+        // Filtrar agendamentos para este dia e UF
+        const dayBookings = bookings.filter(b => {
+            const matchesDate = b.booking_date === dateStr;
+            const matchesUF = !selectedUF || CITIES[selectedUF].id === b.city_id;
+            return matchesDate && matchesUF && b.status === 'confirmed';
+        });
+
+        const isPast = currentDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        // Ponto 1: Garantir que TODOS os dias passados recebam o tom amarelado, independente de terem agendamentos ou não
+        const isYellowDay = isWeekend || isHoliday || isUnavailable || isPast;
+        const isPastEmpty = isPast && dayBookings.length === 0;
         
         // Header
         const dayHeader = document.createElement('div');
@@ -111,14 +138,7 @@ function renderTeamsCalendar(bookings, selectedUF) {
         
         // Coluna de agendamentos
         const dayColumn = document.createElement('div');
-        dayColumn.className = `teams-day-column ${isToday ? 'teams-today' : ''} ${isYellowDay ? 'teams-unavailable' : ''}`;
-        
-        // Filtrar agendamentos para este dia e UF
-        const dayBookings = bookings.filter(b => {
-            const matchesDate = b.booking_date === dateStr;
-            const matchesUF = !selectedUF || CITIES[selectedUF].id === b.city_id;
-            return matchesDate && matchesUF && b.status === 'confirmed';
-        });
+        dayColumn.className = `teams-day-column ${isToday ? 'teams-today' : ''} ${isYellowDay ? 'teams-unavailable' : ''} ${isPastEmpty ? 'past-empty' : ''}`;
         
         // Ordenar por hora
         dayBookings.sort((a, b) => a.booking_time.localeCompare(b.booking_time));
@@ -128,6 +148,7 @@ function renderTeamsCalendar(bookings, selectedUF) {
             if (isHoliday) emptyMsg = 'Feriado';
             else if (isWeekend) emptyMsg = 'Fim de Semana';
             else if (isUnavailable) emptyMsg = 'Indisponível';
+            else if (isPastEmpty) emptyMsg = 'Sem agendamentos';
             
             dayColumn.innerHTML = `<div style="color: #bdc3c7; text-align: center; margin-top: 20px; font-size: 11px;">${emptyMsg}</div>`;
         } else {
@@ -151,13 +172,17 @@ function renderTeamsCalendar(bookings, selectedUF) {
 }
 
 function downloadBookingsXLSX() {
-    // Como estamos em um ambiente web, vamos gerar um CSV que o Excel abre facilmente
-    // ou redirecionar para uma rota de exportação se existisse.
-    // Para este desafio, vamos simular a exportação dos dados atuais em CSV.
+    const selectedUF = document.getElementById('manager-state-select').value;
     
-    const bookings = state.currentBookings;
+    // Ponto 2: Filtrar apenas agendamentos com status "confirmed" e considerar o filtro de Estado
+    const bookings = state.currentBookings.filter(b => {
+        const isConfirmed = b.status === 'confirmed';
+        const matchesUF = !selectedUF || CITIES[selectedUF].id === b.city_id;
+        return isConfirmed && matchesUF;
+    });
+
     if (bookings.length === 0) {
-        showNotification('Não há dados para exportar', 'warning');
+        showNotification('Não há agendamentos confirmados para exportar com os filtros atuais', 'warning');
         return;
     }
     
@@ -198,20 +223,15 @@ function previousWeek() {
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
     
-    // Calcular o primeiro dia da semana se subtrairmos 1 do offset
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() - today.getDay() + ((state.weekOffset - 1) * 7));
     
-    // Permitir apenas se a semana contiver algum dia do mês atual ou seguinte
-    // Simplificando: permitir se o primeiro dia da semana for do mês atual ou posterior
     const minDate = new Date(currentYear, currentMonth, 1);
-    
-    // Se o último dia da semana alvo for anterior ao início do mês atual, bloqueia
     const lastDayOfTargetWeek = new Date(targetDate);
     lastDayOfTargetWeek.setDate(targetDate.getDate() + 6);
     
     if (lastDayOfTargetWeek < minDate) {
-        showNotification('A visualização é limitada ao mês atual e seguinte', 'warning');
+        showNotification('A visualização é limitada ao mês atual e dois meses seguintes', 'warning');
         return;
     }
     
@@ -224,20 +244,16 @@ function nextWeek() {
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
     
-    // Calcular o primeiro dia da semana se somarmos 1 ao offset
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() - today.getDay() + ((state.weekOffset + 1) * 7));
     
-    // Mês seguinte ao atual
-    const nextMonth = (currentMonth + 1) % 12;
-    const nextMonthYear = currentYear + Math.floor((currentMonth + 1) / 12);
+    // Permitir até o fim do segundo mês seguinte (total 3 meses)
+    const limitMonth = (currentMonth + 2) % 12;
+    const limitYear = currentYear + Math.floor((currentMonth + 2) / 12);
+    const lastDayOfLimitMonth = new Date(limitYear, limitMonth + 1, 0);
     
-    // Último dia do mês seguinte
-    const lastDayOfNextMonth = new Date(nextMonthYear, nextMonth + 1, 0);
-    
-    // Se o primeiro dia da semana alvo for posterior ao fim do mês seguinte, bloqueia
-    if (targetDate > lastDayOfNextMonth) {
-        showNotification('A visualização é limitada ao mês atual e seguinte', 'warning');
+    if (targetDate > lastDayOfLimitMonth) {
+        showNotification('A visualização é limitada ao mês atual e dois meses seguintes', 'warning');
         return;
     }
     
